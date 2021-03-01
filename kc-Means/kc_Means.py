@@ -27,42 +27,59 @@ class K_Means(Base):
     def __init__(self, data, k, r):
         super().__init__(data, k, r)
 
+        best = np.inf
+        bestCentroids = None
         for i in range(r):
-            self.run()
+            centroids, sses = self.run()
+            if sses < best:
+                best = sses
+                bestCentroids = centroids
 
     def run(self):
-        centroids = self.randomPoints()
 
-        
-        pwcss = 0.0
-        wcss = 1.0
+        centroids = self.randomPoints()
+        prevBest = None
+        bestCentroids = np.ones((len(self.data), 2)) * np.inf
+
+        i = 0
         while True:
+            prevBest = bestCentroids
             bestCentroids = np.ones((len(self.data), 2)) * np.inf
 
             # Assignment
             for i, c in enumerate(centroids): 
                 norm = np.linalg.norm((self.data - c), 2, 1)
-                bestCentroids[:,1] = np.where(norm <= bestCentroids[:,1], 
+                bestCentroids[:,1] = np.where(norm < bestCentroids[:,1], 
                                               norm, bestCentroids[:,1])
                 bestCentroids[:,0] = np.where(norm == bestCentroids[:,1], 
                                               i, bestCentroids[:,0])
 
                 a=4
 
+            if (prevBest == bestCentroids).all():
+                break
+
             # Update 
+            notDone = False
             for i, c in enumerate(centroids): 
 
                 # Get data values belonging to centroid i
                 m = np.where(bestCentroids[:,0] == i)
                 x = self.data[m,:]
+
+                if notDone and prevWheres[i] != x:
+                    notDone = True
                 
                 # Update the centroid
                 centroids[i] = 1/len(bestCentroids[:,0]) * np.sum(x, 1)
                 
                 vv = 0
+            i += 1
 
-            pwcss = wcss
-            #wcss = 
+        return centroids, np.sum(bestCentroids[:,1])
+
+
+            
 
 
 
