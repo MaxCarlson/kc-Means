@@ -10,7 +10,7 @@ from scipy.spatial import Voronoi, voronoi_plot_2d
 class Base:
     def __init__(self, data, clusters, r):
         self.r = r
-        random.seed(2)
+        #random.seed(2)
         self.data = data
         self.clusters = clusters
         self.minx = np.min(data[0])
@@ -36,8 +36,6 @@ class K_Means(Base):
                 bestCentroids = np.array(centroids)[:,0,:]
 
         fig, ax = plt.subplots()
-
-
         vor = Voronoi(bestCentroids)
         fig = voronoi_plot_2d(vor, ax=ax)
         ax.scatter(self.data[:,0], self.data[:,1])
@@ -53,18 +51,23 @@ class K_Means(Base):
         prevBest = None
         bestCentroids = np.ones((len(self.data), 2)) * np.inf
 
-        ii = 0
+        it = 0
         while True:
             prevBest = bestCentroids
             bestCentroids = np.ones((len(self.data), 2)) * np.inf
 
             # Assignment
             for i, c in enumerate(centroids): 
+
+                # Calculate the 2 norm of all points to this centroid
                 norm = np.linalg.norm((self.data - c), 2, 1)
-                bestCentroids[:,1] = np.where(norm < bestCentroids[:,1], 
-                                              norm, bestCentroids[:,1])
-                bestCentroids[:,0] = np.where(norm == bestCentroids[:,1], 
-                                              i, bestCentroids[:,0])
+
+                # Find the rows in which the 2norm is less than the previous best
+                brows = np.where(norm < bestCentroids[:,1])
+
+                # Replace the norm, then replace that best centroid index
+                bestCentroids[brows, 1] = norm[brows] 
+                bestCentroids[brows, 0] = i
 
                 a=4
 
@@ -79,10 +82,11 @@ class K_Means(Base):
                 x = self.data[m,:]
 
                 # Update the centroid
-                centroids[i] = 1/(np.shape(x)[1] if np.shape(x)[1] else 1) * np.sum(x, 1)
+                centroids[i] = 1/(np.shape(x)[1] if np.shape(x)[1] else 1) \
+                   * np.sum(x, 1)
                 
                 vv = 0
-            ii += 1
+            it += 1
 
         return centroids, np.sum(bestCentroids[:,1])
 
@@ -98,4 +102,4 @@ class C_Means(Base):
 
 data = np.genfromtxt('545_cluster_dataset.txt')
 
-k = K_Means(data, 5, 15)
+k = K_Means(data, 5, 1)
