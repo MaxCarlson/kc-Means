@@ -123,7 +123,7 @@ class C_Means(Base):
                 break
             prevBest = cur
 
-
+            """
             # Compute membership grades
             mgrades = np.zeros(np.shape(memberGrades))
             for j in range(self.clusters):
@@ -134,8 +134,19 @@ class C_Means(Base):
                         d += num / np.linalg.norm(self.data[i] - centroids[k])
                     mgrades[i,j] = 1 / np.power(d, 2/(m-1))
             memberGrades = mgrades
+            """
 
+            n = np.zeros(np.shape(memberGrades))
+            for j in range(self.clusters):
+                n[:,j] = np.linalg.norm(self.data - centroids[j], 2, axis=1)
 
+            s = np.zeros(np.shape(memberGrades))
+            for j in range(self.clusters):
+                for k in range(self.clusters):
+                    d = np.linalg.norm(self.data - centroids[k], 2, axis=1)
+                    s[:,j] += n[:,j] / d
+            memberGrades = 1 / np.power(s, 2/(m-1))
+            a = 5
 
             # Compute vectorized grades
             """
@@ -161,4 +172,4 @@ class C_Means(Base):
 data = np.genfromtxt('545_cluster_dataset.txt')
 
 #k = K_Means(data, 14, 1)
-c = C_Means(data, 5, 1, 2.0)
+c = C_Means(data, 3, 1, 2.0)
