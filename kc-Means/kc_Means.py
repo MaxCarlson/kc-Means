@@ -39,8 +39,6 @@ class K_Means(Base):
         vor = Voronoi(bestCentroids)
         fig = voronoi_plot_2d(vor, ax=ax)
         ax.scatter(self.data[:,0], self.data[:,1])
-        #plt.show()
-
         ax.xaxis.zoom(-12)
         ax.yaxis.zoom(-15)
         plt.show()
@@ -96,10 +94,56 @@ class K_Means(Base):
 
 
 class C_Means(Base):
-    def __init__(self, data, c, r):
+    def __init__(self, data, c, r, m=1):
         super().__init__(data, c, r)
+
+        grades, centroids = self.run(m)
+        bestGrade = np.argmax(grades, 1)
+
+        fig, ax = plt.subplots()
+        for i in range(self.clusters):
+            ax.plot(self.data[bestGrade==i, 0], self.data[bestGrade==i, 1], 'o')
+        plt.show()
+
+
+    def run(self, m):
+        centroids = self.randomPoints()
+        prevBest = None
+        memberGrades = np.random.rand(len(self.data), self.clusters)
+        
+        while True:
+            # Compute centroids
+            pow = np.power(self.data, m)
+            num = np.dot(np.transpose(memberGrades), np.multiply(pow, self.data))
+            den = np.dot(np.transpose(memberGrades), pow)
+            centroids = num / den
+
+            if (prevBest == centroids).all():
+                break
+            prevBest = centroids
+
+            # Compute membership grades
+            t = np.zeros(np.shape(memberGrades))
+            for i in range(self.clusters):
+                t[:,i] = np.linalg.norm(self.data - centroids[i], 2)
+
+            s = np.zeros(np.shape(memberGrades))
+            for i in range(self.clusters):
+                s += t / np.linalg.norm(self.data - centroids[i], 2)
+        
+            memberGrades = 1 / np.power(s, 2/(m+1))
+            break
+
+            a=5
+        
+        return memberGrades, centroids
+
+        
+
+
 
 
 data = np.genfromtxt('545_cluster_dataset.txt')
 
-k = K_Means(data, 5, 3)
+#k = K_Means(data, 14, 1)
+c = C_Means(data, 3, 1)
