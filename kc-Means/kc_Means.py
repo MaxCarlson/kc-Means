@@ -94,7 +94,7 @@ class K_Means(Base):
 
 
 class C_Means(Base):
-    def __init__(self, data, c, r, m=1):
+    def __init__(self, data, c, r, m=1.00001):
         super().__init__(data, c, r)
 
         grades, centroids = self.run(m)
@@ -113,16 +113,32 @@ class C_Means(Base):
         
         while True:
             # Compute centroids
-            pow = np.power(self.data, m)
-            num = np.dot(np.transpose(memberGrades), np.multiply(pow, self.data))
-            den = np.dot(np.transpose(memberGrades), pow)
-            centroids = num / den
+            pow = np.power(memberGrades, m)
+            num = np.dot(np.transpose(pow), self.data)
+            den = np.sum(pow, 0)
+            centroids = num / np.transpose(np.stack([den]*2))
 
-            if (prevBest == centroids).all():
+            cur = np.argmax(memberGrades, 1)
+            if (prevBest == cur).all():
                 break
-            prevBest = centroids
+            prevBest = cur
+
 
             # Compute membership grades
+            mgrades = np.zeros(np.shape(memberGrades))
+            for j in range(self.clusters):
+                for i in range(len(self.data)):
+                    num = np.linalg.norm(self.data[i] - centroids[j], 2)
+                    d = 0
+                    for k in range(self.clusters):
+                        d += num / np.linalg.norm(self.data[i] - centroids[k])
+                    mgrades[i,j] = 1 / np.power(d, 2/(m-1))
+            memberGrades = mgrades
+
+
+
+            # Compute vectorized grades
+            """
             t = np.zeros(np.shape(memberGrades))
             for i in range(self.clusters):
                 t[:,i] = np.linalg.norm(self.data - centroids[i], 2)
@@ -131,9 +147,8 @@ class C_Means(Base):
             for i in range(self.clusters):
                 s += t / np.linalg.norm(self.data - centroids[i], 2)
         
-            memberGrades = 1 / np.power(s, 2/(m+1))
-            break
-
+            memberGrades = 1 / np.power(s, 2/(m-1))
+            """
             a=5
         
         return memberGrades, centroids
@@ -146,4 +161,4 @@ class C_Means(Base):
 data = np.genfromtxt('545_cluster_dataset.txt')
 
 #k = K_Means(data, 14, 1)
-c = C_Means(data, 3, 1)
+c = C_Means(data, 5, 1, 2.0)
