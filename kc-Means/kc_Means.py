@@ -13,10 +13,10 @@ class Base:
         #random.seed(2)
         self.data = data
         self.clusters = clusters
-        self.minx = np.min(data[0])
-        self.miny = np.min(data[1])
-        self.maxx = np.max(data[0])
-        self.maxy = np.max(data[1])
+        self.minx = np.min(data[:,0])
+        self.miny = np.min(data[:,1])
+        self.maxx = np.max(data[:,0])
+        self.maxy = np.max(data[:,1])
 
     def randomPoints(self):
         return [(random.uniform(self.minx, self.maxx), 
@@ -102,4 +102,4 @@ class C_Means(Base):
 
 data = np.genfromtxt('545_cluster_dataset.txt')
 
-k = K_Means(data, 5, 1)
+k = K_Means(data, 5, 3)
