@@ -6,6 +6,8 @@ import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.spatial import Voronoi, voronoi_plot_2d
+import plotly.graph_objects as go
+import matplotlib.tri as tri
 
 class Base:
     def __init__(self, data, clusters, r):
@@ -97,8 +99,56 @@ class C_Means(Base):
     def __init__(self, data, c, r, m=1.00001):
         super().__init__(data, c, r)
 
-        grades, centroids = self.run(m)
-        bestGrade = np.argmax(grades, 1)
+        bestLoss = np.inf
+        bestGrades = None
+        for i in range(r):
+            grades, centroids, loss = self.run(m)
+            if loss < bestLoss:
+                bestGrades = grades
+                bestLoss = loss
+
+        bestGrade = np.argmax(bestGrades, 1)
+        #bestGrade = np.average(bestGrades, 1)
+
+        npts = 100
+        fig, ax1 = plt.subplots(nrows=1)
+        xi = np.linspace(self.minx, self.maxx, npts)
+        yi = np.linspace(self.miny, self.maxy, npts)
+
+        triang = tri.Triangulation(self.data[:,0], self.data[:,1])
+        interpolator = tri.LinearTriInterpolator(triang, bestGrade)
+        Xi, Yi = np.meshgrid(xi, yi)
+        zi = interpolator(Xi, Yi)
+
+        ax1.contour(xi, yi, zi, levels=self.clusters, linewidths=0.5, colors='k')
+        cntr1 = ax1.contourf(xi, yi, zi, levels=self.clusters, cmap="plasma")
+
+        fig.colorbar(cntr1, ax=ax1)
+        ax1.plot(self.data[:,0], self.data[:,1], 'ko', ms=3)
+        ax1.set(xlim=(self.minx, self.maxx), ylim=(self.miny, self.maxy))
+        ax1.set_title('grid and contour (%d points, %d grid points)' %
+                      (len(self.data), npts*npts))
+
+        #ax2.tricontour(self.data[:,0], self.data[:,1], bestGrade, 
+        #               levels=14, linewidths=0.5, colors='k')
+        #cntr2 = ax2.tricontourf(self.data[:,0], self.data[:,1], bestGrade,
+        #                       levels=14, cmap="inferno")
+        #
+        #fig.colorbar(cntr2, ax=ax2)
+        #ax2.plot(self.data[:,0], self.data[:,1], 'ko', ms=3)
+        #ax2.set(xlim=(-2, 2), ylim=(-2, 2))
+        #ax2.set_title('tricontour (%d points)' % len(self.data))
+
+        #ax1.xaxis.zoom(-12)
+        #ax1.yaxis.zoom(-15)
+
+        plt.subplots_adjust(hspace=0.5)
+        #plt.show()
+
+
+        #fig = go.Figure(data=go.Contour(z=bestGrade, colorscale='Electric'))
+        #fig.show()
+        #plt.contour(self.data[:,0], self.data[:,1], bestGrade)
 
         fig, ax = plt.subplots()
         for i in range(self.clusters):
@@ -123,46 +173,23 @@ class C_Means(Base):
                 break
             prevBest = cur
 
-            """
             # Compute membership grades
-            mgrades = np.zeros(np.shape(memberGrades))
-            for j in range(self.clusters):
-                for i in range(len(self.data)):
-                    num = np.linalg.norm(self.data[i] - centroids[j], 2)
-                    d = 0
-                    for k in range(self.clusters):
-                        d += num / np.linalg.norm(self.data[i] - centroids[k])
-                    mgrades[i,j] = 1 / np.power(d, 2/(m-1))
-            memberGrades = mgrades
-            """
-
             n = np.zeros(np.shape(memberGrades))
             for j in range(self.clusters):
                 n[:,j] = np.linalg.norm(self.data - centroids[j], 2, axis=1)
 
             s = np.zeros(np.shape(memberGrades))
-            for j in range(self.clusters):
-                for k in range(self.clusters):
-                    d = np.linalg.norm(self.data - centroids[k], 2, axis=1)
+            for k in range(self.clusters):
+                d = np.linalg.norm(self.data - centroids[k], 2, axis=1)
+                for j in range(self.clusters):
                     s[:,j] += n[:,j] / d
             memberGrades = 1 / np.power(s, 2/(m-1))
             a = 5
 
-            # Compute vectorized grades
-            """
-            t = np.zeros(np.shape(memberGrades))
-            for i in range(self.clusters):
-                t[:,i] = np.linalg.norm(self.data - centroids[i], 2)
+        bestGrades = np.argmax(memberGrades, axis=1)
+        loss = np.sum(np.linalg.norm(self.data - centroids[bestGrades], axis=1))
 
-            s = np.zeros(np.shape(memberGrades))
-            for i in range(self.clusters):
-                s += t / np.linalg.norm(self.data - centroids[i], 2)
-        
-            memberGrades = 1 / np.power(s, 2/(m-1))
-            """
-            a=5
-        
-        return memberGrades, centroids
+        return memberGrades, centroids, loss
 
         
 
@@ -172,4 +199,4 @@ class C_Means(Base):
 data = np.genfromtxt('545_cluster_dataset.txt')
 
 #k = K_Means(data, 14, 1)
-c = C_Means(data, 3, 1, 2.0)
+c = C_Means(data, 5, 10, 5)
