@@ -211,7 +211,8 @@ class C_Means(Base):
 
         SSE = 0
         for j in range(self.clusters):
-            SSE += np.sum(np.power(memberGrades[:,j], m) * np.linalg.norm(centroids[j] - self.data, axis=1))
+            SSE += np.sum(np.power(memberGrades[:,j], m) 
+                          * np.linalg.norm(centroids[j] - self.data, axis=1))
 
         return memberGrades, centroids, SSE
 
