@@ -6,8 +6,6 @@ import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.spatial import Voronoi, voronoi_plot_2d
-import plotly.graph_objects as go
-import matplotlib.tri as tri
 from scipy.interpolate import griddata
 from matplotlib import cm
 
@@ -80,8 +78,6 @@ class K_Means(Base):
                 bestCentroids[brows, 1] = norm[brows] 
                 bestCentroids[brows, 0] = i
 
-                a=4
-
             if (prevBest == bestCentroids).all():
                 break
 
@@ -106,8 +102,9 @@ class K_Means(Base):
 def gauss(x,y,Sigma,mu):
     X=np.vstack((x,y)).T
     mat_multi=np.dot((X-mu[None,...]).dot(np.linalg.inv(Sigma)),(X-mu[None,...]).T)
-    return  np.diag(np.exp(-1*(mat_multi)))
-            
+    return np.diag(np.exp(-1*(mat_multi)))
+
+   
 def plot_countour(i, x,y,z, npts, mins, maxs):
     cmaps = [cm.Reds, cm.Blues, cm.Greens, cm.Greys, cm.PuRd, cm.GnBu, cm.YlOrBr]
 
@@ -116,7 +113,9 @@ def plot_countour(i, x,y,z, npts, mins, maxs):
     yi = np.linspace(mins[1], maxs[1], 100)
     ## grid the data.
     zi = griddata((x, y), z, (xi[None,:], yi[:,None]), method='cubic')
-    levels = [0.05, 0.2, 0.5, 0.8, 1.0]
+    #levels = [0.005, 0.07, 0.2, 0.5, 1.0]
+    levels = [0.0035, 0.05, 0.15, 0.4, 0.7, 1.0]
+
     # contour the gridded data, plotting dots at the randomly spaced data points.
     CS = plt.contour(xi,yi,zi,len(levels),linewidths=0.5,colors='k', levels=levels)
     #CS = plt.contourf(xi,yi,zi,15,cmap=plt.cm.jet)
@@ -139,11 +138,15 @@ class C_Means(Base):
                 bestLoss = loss
 
         print('BestSSE:', bestLoss)
+        self.graph(bestGrades, bestLoss, r, m)
+
+    def graph(self, bestGrades, bestLoss, r, m):
         bestGrade = np.argmax(bestGrades, 1)
 
         for i in range(self.clusters):
            plt.plot(self.data[bestGrade==i, 0], self.data[bestGrade==i, 1], 'o', 
                     zorder=0, color='rbgkmcy'[i % len('rbgkmcy')])
+           
 
         X = self.data[:,0]
         Y = self.data[:,1]
@@ -151,14 +154,26 @@ class C_Means(Base):
         for i in range(self.clusters):
             w = np.where(bestGrade == i)
             b = self.data[w]
-            cov = np.cov(np.transpose(b))
             u = np.mean(b, axis=0)
+
+            u = np.zeros((2))
+            vv = 0
+            for d, s in zip(self.data, bestGrades[:,i]):
+                u += d * s
+                vv += s
+            u /= vv
+
+            #b = self.data * np.stack([bestGrades[:,i], bestGrades[:,i]], axis=1) * 3.5
+            cov = np.cov(np.transpose(b))
         
-            npts = 100
-            z = gauss(X, Y, cov, u)
+            npts = 200
+            #z = gauss(X, Y, cov, u)
+            z = gauss(X, Y, cov, u) * bestGrades[:,i]
+            z *= 1 / z.max()
+
             plot_countour(i, X, Y, z, npts, (self.minx, self.miny), 
                           (self.maxx, self.maxy))
-        plt.title('SSE: %.2f' % bestLoss + ' c='+str(c) + ' r='+str(r) + ' m='+str(m))
+        plt.title('SSE: %.2f' % bestLoss + ' c='+str(self.clusters) + ' r='+str(r) + ' m='+str(m))
         plt.show()
 
     def run(self, m):
@@ -194,7 +209,11 @@ class C_Means(Base):
         bestGrades = np.argmax(memberGrades, axis=1)
         loss = np.sum(np.linalg.norm(self.data - centroids[bestGrades], axis=1))
 
-        return memberGrades, centroids, loss
+        SSE = 0
+        for j in range(self.clusters):
+            SSE += np.sum(np.power(memberGrades[:,j], m) * np.linalg.norm(centroids[j] - self.data, axis=1))
+
+        return memberGrades, centroids, SSE
 
         
 
@@ -203,5 +222,5 @@ class C_Means(Base):
 
 data = np.genfromtxt('545_cluster_dataset.txt')
 
-k = K_Means(data, 10, 5)
-#c = C_Means(data, 3, 10, 10)
+#k = K_Means(data, 5, 125)
+c = C_Means(data, 7, 10, 2)
