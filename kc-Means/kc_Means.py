@@ -34,12 +34,20 @@ class K_Means(Base):
         best = np.inf
         bestCentroids = None
         for i in range(r):
-            centroids, sses = self.run()
+            centroids, sses, closestsCentroids = self.run()
             if sses < best:
                 best = sses
                 bestCentroids = np.array(centroids)[:,0,:]
-        
+
+
+        for i in range(self.clusters):
+           plt.plot(self.data[closestsCentroids==i, 0], 
+                    self.data[closestsCentroids==i, 1], 'o', 
+                    zorder=0, color='rbgkmcy'[i % len('rbgkmcy')])
         print('BestSSE:', best)
+        plt.title('SSE: %.2f' % sses + ' k='+str(k) + ' r='+str(r))
+        plt.show()
+
         fig, ax = plt.subplots()
         vor = Voronoi(bestCentroids)
         fig = voronoi_plot_2d(vor, ax=ax)
@@ -91,7 +99,7 @@ class K_Means(Base):
                 vv = 0
             it += 1
 
-        return centroids, np.sum(bestCentroids[:,1])
+        return centroids, np.sum(bestCentroids[:,1]), bestCentroids[:,0]
 
 
 
@@ -150,7 +158,7 @@ class C_Means(Base):
             z = gauss(X, Y, cov, u)
             plot_countour(i, X, Y, z, npts, (self.minx, self.miny), 
                           (self.maxx, self.maxy))
-
+        plt.title('SSE: %.2f' % bestLoss + ' c='+str(c) + ' r='+str(r) + ' m='+str(m))
         plt.show()
 
     def run(self, m):
@@ -195,5 +203,5 @@ class C_Means(Base):
 
 data = np.genfromtxt('545_cluster_dataset.txt')
 
-#k = K_Means(data, 5, 1)
-c = C_Means(data, 5, 10, 5)
+k = K_Means(data, 10, 5)
+#c = C_Means(data, 3, 10, 10)
