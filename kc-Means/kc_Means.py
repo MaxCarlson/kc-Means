@@ -100,24 +100,20 @@ def gauss(x,y,Sigma,mu):
     mat_multi=np.dot((X-mu[None,...]).dot(np.linalg.inv(Sigma)),(X-mu[None,...]).T)
     return  np.diag(np.exp(-1*(mat_multi)))
             
-def plot_countour(x,y,z, npts, mins, maxs):
+def plot_countour(i, x,y,z, npts, mins, maxs):
+    cmaps = [cm.Reds, cm.Blues, cm.Greens, cm.Greys, cm.PuRd, cm.GnBu, cm.YlOrBr]
+
     # define grid.
     xi = np.linspace(mins[0], maxs[0], 100)
     yi = np.linspace(mins[1], maxs[1], 100)
     ## grid the data.
     zi = griddata((x, y), z, (xi[None,:], yi[:,None]), method='cubic')
-    levels = [0.2, 0.4, 0.6, 0.8, 1.0]
+    levels = [0.05, 0.2, 0.5, 0.8, 1.0]
     # contour the gridded data, plotting dots at the randomly spaced data points.
     CS = plt.contour(xi,yi,zi,len(levels),linewidths=0.5,colors='k', levels=levels)
     #CS = plt.contourf(xi,yi,zi,15,cmap=plt.cm.jet)
-    CS = plt.contourf(xi,yi,zi,len(levels),cmap=cm.Greys_r, levels=levels)
-    #plt.colorbar() # draw colorbar
-    # plot data points.
-    # plt.scatter(x, y, marker='o', c='b', s=5)
-    #plt.xlim(-2, 2)
-    #plt.ylim(-2, 2)
-    #plt.title('griddata test (%d points)' % npts)
-    #plt.show()
+    CS = plt.contourf(xi,yi,zi,len(levels),cmap=cmaps[i  % len(cmaps)], 
+                      levels=levels, zorder=1, alpha=0.7)
 
 
 class C_Means(Base):
@@ -136,7 +132,10 @@ class C_Means(Base):
 
         print('BestSSE:', bestLoss)
         bestGrade = np.argmax(bestGrades, 1)
-        #bestGrade = np.average(bestGrades, 1)
+
+        for i in range(self.clusters):
+           plt.plot(self.data[bestGrade==i, 0], self.data[bestGrade==i, 1], 'o', 
+                    zorder=0, color='rbgkmcy'[i % len('rbgkmcy')])
 
         X = self.data[:,0]
         Y = self.data[:,1]
@@ -149,71 +148,10 @@ class C_Means(Base):
         
             npts = 100
             z = gauss(X, Y, cov, u)
-            plot_countour(X, Y, z, npts, (self.minx, self.miny), 
+            plot_countour(i, X, Y, z, npts, (self.minx, self.miny), 
                           (self.maxx, self.maxy))
 
-        #plt.show()
-
-        #fig = plt.figure()
-        #ax = fig.gca(projection='3d')
-        #ax.plot_surface(X, Y, Z, rstride=3, cstride=3, linewidth=1, antialiased=True,
-        #                cmap=cm.viridis)
-        #
-        #cset = ax.contourf(X, Y, Z, zdir='z', offset=-0.15, cmap=cm.viridis)
-        #
-        ## Adjust the limits, ticks and view angle
-        #ax.set_zlim(-0.15,0.2)
-        #ax.set_zticks(np.linspace(0,0.2,5))
-        #ax.view_init(27, -21)
-        #
-        #plt.show()
-
-
-        #npts = 100
-        #fig, ax1 = plt.subplots(nrows=1)
-        #xi = np.linspace(self.minx, self.maxx, npts)
-        #yi = np.linspace(self.miny, self.maxy, npts)
-        #
-        #triang = tri.Triangulation(self.data[:,0], self.data[:,1])
-        #interpolator = tri.LinearTriInterpolator(triang, bestGrade)
-        #Xi, Yi = np.meshgrid(xi, yi)
-        #zi = interpolator(Xi, Yi)
-        #
-        #ax1.contour(xi, yi, zi, levels=self.clusters, linewidths=0.5, colors='k')
-        #cntr1 = ax1.contourf(xi, yi, zi, levels=self.clusters, cmap="plasma")
-        #
-        #fig.colorbar(cntr1, ax=ax1)
-        #ax1.plot(self.data[:,0], self.data[:,1], 'ko', ms=3)
-        #ax1.set(xlim=(self.minx, self.maxx), ylim=(self.miny, self.maxy))
-        #ax1.set_title('grid and contour (%d points, %d grid points)' %
-        #              (len(self.data), npts*npts))
-
-        #ax2.tricontour(self.data[:,0], self.data[:,1], bestGrade, 
-        #               levels=14, linewidths=0.5, colors='k')
-        #cntr2 = ax2.tricontourf(self.data[:,0], self.data[:,1], bestGrade,
-        #                       levels=14, cmap="inferno")
-        #
-        #fig.colorbar(cntr2, ax=ax2)
-        #ax2.plot(self.data[:,0], self.data[:,1], 'ko', ms=3)
-        #ax2.set(xlim=(-2, 2), ylim=(-2, 2))
-        #ax2.set_title('tricontour (%d points)' % len(self.data))
-
-        #ax1.xaxis.zoom(-12)
-        #ax1.yaxis.zoom(-15)
-
-        plt.subplots_adjust(hspace=0.5)
-        #plt.show()
-
-
-        #fig = go.Figure(data=go.Contour(z=bestGrade, colorscale='Electric'))
-        #fig.show()
-        #plt.contour(self.data[:,0], self.data[:,1], bestGrade)
-
-        fig, ax = plt.subplots()
-        for i in range(self.clusters):
-            ax.plot(self.data[bestGrade==i, 0], self.data[bestGrade==i, 1], 'o')
         plt.show()
-
 
     def run(self, m):
         centroids = self.randomPoints()
@@ -257,5 +195,5 @@ class C_Means(Base):
 
 data = np.genfromtxt('545_cluster_dataset.txt')
 
-#k = K_Means(data, 14, 1)
+#k = K_Means(data, 5, 1)
 c = C_Means(data, 5, 10, 5)
