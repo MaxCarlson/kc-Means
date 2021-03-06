@@ -44,13 +44,6 @@ class K_Means(Base):
         plt.title('SSE: %.2f' % sses + ' k='+str(k) + ' r='+str(r))
         plt.show()
 
-        fig, ax = plt.subplots()
-        vor = Voronoi(bestCentroids)
-        fig = voronoi_plot_2d(vor, ax=ax)
-        ax.scatter(self.data[:,0], self.data[:,1])
-        ax.xaxis.zoom(-12)
-        ax.yaxis.zoom(-15)
-        plt.show()
 
     def run(self):
 
