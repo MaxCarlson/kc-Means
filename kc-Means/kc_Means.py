@@ -2,12 +2,10 @@ import csv
 import copy
 import math
 import random
-import matplotlib
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.spatial import Voronoi, voronoi_plot_2d
-from scipy.interpolate import griddata
 from matplotlib import cm
+import matplotlib.pyplot as plt
+from scipy.interpolate import griddata
 
 class Base:
     def __init__(self, data, clusters, r):
@@ -223,5 +221,5 @@ class C_Means(Base):
 
 data = np.genfromtxt('545_cluster_dataset.txt')
 
-#k = K_Means(data, 5, 125)
-c = C_Means(data, 7, 10, 2)
+k = K_Means(data, 5, 125)
+#c = C_Means(data, 7, 10, 2)
