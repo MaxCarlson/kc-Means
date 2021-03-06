@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 from scipy.spatial import Voronoi, voronoi_plot_2d
 import plotly.graph_objects as go
 import matplotlib.tri as tri
+from scipy.interpolate import griddata
+from matplotlib import cm
 
 class Base:
     def __init__(self, data, clusters, r):
@@ -36,7 +38,8 @@ class K_Means(Base):
             if sses < best:
                 best = sses
                 bestCentroids = np.array(centroids)[:,0,:]
-
+        
+        print('BestSSE:', best)
         fig, ax = plt.subplots()
         vor = Voronoi(bestCentroids)
         fig = voronoi_plot_2d(vor, ax=ax)
@@ -91,11 +94,35 @@ class K_Means(Base):
         return centroids, np.sum(bestCentroids[:,1])
 
 
-            
 
+def gauss(x,y,Sigma,mu):
+    X=np.vstack((x,y)).T
+    mat_multi=np.dot((X-mu[None,...]).dot(np.linalg.inv(Sigma)),(X-mu[None,...]).T)
+    return  np.diag(np.exp(-1*(mat_multi)))
+            
+def plot_countour(x,y,z, npts, mins, maxs):
+    # define grid.
+    xi = np.linspace(mins[0], maxs[0], 100)
+    yi = np.linspace(mins[1], maxs[1], 100)
+    ## grid the data.
+    zi = griddata((x, y), z, (xi[None,:], yi[:,None]), method='cubic')
+    levels = [0.2, 0.4, 0.6, 0.8, 1.0]
+    # contour the gridded data, plotting dots at the randomly spaced data points.
+    CS = plt.contour(xi,yi,zi,len(levels),linewidths=0.5,colors='k', levels=levels)
+    #CS = plt.contourf(xi,yi,zi,15,cmap=plt.cm.jet)
+    CS = plt.contourf(xi,yi,zi,len(levels),cmap=cm.Greys_r, levels=levels)
+    #plt.colorbar() # draw colorbar
+    # plot data points.
+    # plt.scatter(x, y, marker='o', c='b', s=5)
+    #plt.xlim(-2, 2)
+    #plt.ylim(-2, 2)
+    #plt.title('griddata test (%d points)' % npts)
+    #plt.show()
 
 
 class C_Means(Base):
+
+
     def __init__(self, data, c, r, m=1.00001):
         super().__init__(data, c, r)
 
@@ -107,27 +134,59 @@ class C_Means(Base):
                 bestGrades = grades
                 bestLoss = loss
 
+        print('BestSSE:', bestLoss)
         bestGrade = np.argmax(bestGrades, 1)
         #bestGrade = np.average(bestGrades, 1)
 
-        npts = 100
-        fig, ax1 = plt.subplots(nrows=1)
-        xi = np.linspace(self.minx, self.maxx, npts)
-        yi = np.linspace(self.miny, self.maxy, npts)
+        X = self.data[:,0]
+        Y = self.data[:,1]
 
-        triang = tri.Triangulation(self.data[:,0], self.data[:,1])
-        interpolator = tri.LinearTriInterpolator(triang, bestGrade)
-        Xi, Yi = np.meshgrid(xi, yi)
-        zi = interpolator(Xi, Yi)
+        for i in range(self.clusters):
+            w = np.where(bestGrade == i)
+            b = self.data[w]
+            cov = np.cov(np.transpose(b))
+            u = np.mean(b, axis=0)
+        
+            npts = 100
+            z = gauss(X, Y, cov, u)
+            plot_countour(X, Y, z, npts, (self.minx, self.miny), 
+                          (self.maxx, self.maxy))
 
-        ax1.contour(xi, yi, zi, levels=self.clusters, linewidths=0.5, colors='k')
-        cntr1 = ax1.contourf(xi, yi, zi, levels=self.clusters, cmap="plasma")
+        #plt.show()
 
-        fig.colorbar(cntr1, ax=ax1)
-        ax1.plot(self.data[:,0], self.data[:,1], 'ko', ms=3)
-        ax1.set(xlim=(self.minx, self.maxx), ylim=(self.miny, self.maxy))
-        ax1.set_title('grid and contour (%d points, %d grid points)' %
-                      (len(self.data), npts*npts))
+        #fig = plt.figure()
+        #ax = fig.gca(projection='3d')
+        #ax.plot_surface(X, Y, Z, rstride=3, cstride=3, linewidth=1, antialiased=True,
+        #                cmap=cm.viridis)
+        #
+        #cset = ax.contourf(X, Y, Z, zdir='z', offset=-0.15, cmap=cm.viridis)
+        #
+        ## Adjust the limits, ticks and view angle
+        #ax.set_zlim(-0.15,0.2)
+        #ax.set_zticks(np.linspace(0,0.2,5))
+        #ax.view_init(27, -21)
+        #
+        #plt.show()
+
+
+        #npts = 100
+        #fig, ax1 = plt.subplots(nrows=1)
+        #xi = np.linspace(self.minx, self.maxx, npts)
+        #yi = np.linspace(self.miny, self.maxy, npts)
+        #
+        #triang = tri.Triangulation(self.data[:,0], self.data[:,1])
+        #interpolator = tri.LinearTriInterpolator(triang, bestGrade)
+        #Xi, Yi = np.meshgrid(xi, yi)
+        #zi = interpolator(Xi, Yi)
+        #
+        #ax1.contour(xi, yi, zi, levels=self.clusters, linewidths=0.5, colors='k')
+        #cntr1 = ax1.contourf(xi, yi, zi, levels=self.clusters, cmap="plasma")
+        #
+        #fig.colorbar(cntr1, ax=ax1)
+        #ax1.plot(self.data[:,0], self.data[:,1], 'ko', ms=3)
+        #ax1.set(xlim=(self.minx, self.maxx), ylim=(self.miny, self.maxy))
+        #ax1.set_title('grid and contour (%d points, %d grid points)' %
+        #              (len(self.data), npts*npts))
 
         #ax2.tricontour(self.data[:,0], self.data[:,1], bestGrade, 
         #               levels=14, linewidths=0.5, colors='k')
